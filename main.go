@@ -15,7 +15,7 @@ import (
 var slackClient slack.Client
 
 func main() {
-	http.HandleFunc("/", slashCommandHandler)
+	http.HandleFunc("/gokicker", slashCommandHandler)
 	http.HandleFunc("/actions", actionHandler)
 	http.ListenAndServe(":8080", nil)
 }
@@ -29,7 +29,7 @@ func slashCommandHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	switch s.Command {
-	case "/kicker":
+	case "/gokicker":
 		attachments := []slack.Attachment{
 			slack.Attachment{
 				Title:      fmt.Sprintf("<@%s> joined!", s.UserID),

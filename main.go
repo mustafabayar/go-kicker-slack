@@ -3,10 +3,8 @@ package main
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"log"
 	"net/http"
-	"net/url"
 	"os"
 	"strings"
 
@@ -19,7 +17,6 @@ func main() {
 	http.HandleFunc("/gokicker", slashCommandHandler)
 	http.HandleFunc("/actions", actionHandler)
 	http.ListenAndServe(":"+os.Getenv("PORT"), nil)
-	log.Println("App has started")
 }
 
 func slashCommandHandler(w http.ResponseWriter, r *http.Request) {
@@ -96,6 +93,7 @@ func slashCommandHandler(w http.ResponseWriter, r *http.Request) {
 			},
 		}
 		params.Attachments = attachments
+		params.ResponseType = "in_channel"
 		b, err := json.Marshal(params)
 		if err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
@@ -111,62 +109,37 @@ func slashCommandHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func actionHandler(w http.ResponseWriter, r *http.Request) {
-
-	if r.Method != http.MethodPost {
-		log.Printf("[ERROR] Invalid method: %s", r.Method)
-		w.WriteHeader(http.StatusMethodNotAllowed)
-		return
-	}
-
-	buf, err := ioutil.ReadAll(r.Body)
+	var actionCallback slack.InteractionCallback
+	log.Println(r.FormValue("payload"))
+	err := json.Unmarshal([]byte(r.FormValue("payload")), &actionCallback)
 	if err != nil {
-		log.Printf("[ERROR] Failed to read request body: %s", err)
+		log.Println("[ERROR] Failed to decode json message from slack")
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
-
-	jsonStr, err := url.QueryUnescape(string(buf)[8:])
-	if err != nil {
-		log.Printf("[ERROR] Failed to unespace request body: %s", err)
-		w.WriteHeader(http.StatusInternalServerError)
-		return
-	}
-
-	var message slack.AttachmentActionCallback
-	err = json.Unmarshal([]byte(jsonStr), &message)
-	if err != nil {
-		log.Printf("[ERROR] Failed to decode json message from slack: %s", jsonStr)
-		w.WriteHeader(http.StatusInternalServerError)
-		return
-	}
-
-	log.Printf("Received a slash command: %v", message)
-
-	log.Printf("Received a slash command: %v", message.ActionCallback.AttachmentActions)
-
-	originalMessage := message.OriginalMessage
 
 	var modifiedAttachment slack.Attachment
 	var index int
-	switch message.ActionCallback.AttachmentActions[0].Name {
+	actionName := actionCallback.ActionCallback.AttachmentActions[0].Name
+	switch actionName {
 	case "button-join-0", "button-leave-0":
 		index = 0
-		modifiedAttachment = originalMessage.Attachments[index]
+		modifiedAttachment = actionCallback.OriginalMessage.Attachments[index]
 		break
 	case "button-join-1", "button-leave-1":
 		index = 1
-		modifiedAttachment = originalMessage.Attachments[index]
+		modifiedAttachment = actionCallback.OriginalMessage.Attachments[index]
 		break
 	case "button-join-2", "button-leave-2":
 		index = 2
-		modifiedAttachment = originalMessage.Attachments[index]
+		modifiedAttachment = actionCallback.OriginalMessage.Attachments[index]
 		break
 	case "button-join-3", "button-leave-3":
 		index = 3
-		modifiedAttachment = originalMessage.Attachments[index]
+		modifiedAttachment = actionCallback.OriginalMessage.Attachments[index]
 		break
 	default:
-		log.Printf("[ERROR] ]Invalid action was submitted: %s", message.ActionCallback.AttachmentActions[0].Name)
+		log.Printf("[ERROR] ]Invalid action was submitted: %s", actionName)
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
@@ -180,10 +153,10 @@ func actionHandler(w http.ResponseWriter, r *http.Request) {
 			Text:  "Leave",
 			Type:  "button",
 			Style: "danger",
-			Value: message.User.ID,
+			Value: actionCallback.User.ID,
 		}
 		modifiedAttachment.Actions = append(modifiedAttachment.Actions, leaveAction)
-		modifiedAttachment.Title = fmt.Sprintf("<@%s> joined!", message.User.ID)
+		modifiedAttachment.Title = fmt.Sprintf("<@%s> joined!", actionCallback.User.ID)
 	}
 
 	if strings.Contains(action.Name, "leave") {
@@ -197,12 +170,12 @@ func actionHandler(w http.ResponseWriter, r *http.Request) {
 			Value: "To join a match",
 		}
 		modifiedAttachment.Actions = append(modifiedAttachment.Actions, joinAction)
-		modifiedAttachment.Title = fmt.Sprintf("<@%s> left!", message.User.ID)
+		modifiedAttachment.Title = fmt.Sprintf("<@%s> left!", actionCallback.User.ID)
 	}
 
-	originalMessage.Attachments[index] = modifiedAttachment
+	actionCallback.OriginalMessage.Attachments[index] = modifiedAttachment
 
 	w.Header().Add("Content-type", "application/json")
 	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(&originalMessage)
+	json.NewEncoder(w).Encode(&actionCallback.OriginalMessage)
 }

@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"os"
 	"io/ioutil"
 	"log"
 	"net/http"
@@ -17,7 +18,7 @@ var slackClient slack.Client
 func main() {
 	http.HandleFunc("/gokicker", slashCommandHandler)
 	http.HandleFunc("/actions", actionHandler)
-	http.ListenAndServe(":8080", nil)
+	http.ListenAndServe(os.Getenv("PORT"), nil)
 }
 
 func slashCommandHandler(w http.ResponseWriter, r *http.Request) {

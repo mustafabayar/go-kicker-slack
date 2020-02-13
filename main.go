@@ -3,11 +3,11 @@ package main
 import (
 	"encoding/json"
 	"fmt"
-	"os"
 	"io/ioutil"
 	"log"
 	"net/http"
 	"net/url"
+	"os"
 	"strings"
 
 	"github.com/nlopes/slack"
@@ -18,7 +18,8 @@ var slackClient slack.Client
 func main() {
 	http.HandleFunc("/gokicker", slashCommandHandler)
 	http.HandleFunc("/actions", actionHandler)
-	http.ListenAndServe(os.Getenv("PORT"), nil)
+	http.ListenAndServe(":"+os.Getenv("PORT"), nil)
+	log.Println("App has started")
 }
 
 func slashCommandHandler(w http.ResponseWriter, r *http.Request) {
@@ -31,6 +32,7 @@ func slashCommandHandler(w http.ResponseWriter, r *http.Request) {
 
 	switch s.Command {
 	case "/gokicker":
+		params := &slack.Msg{Text: s.Text}
 		attachments := []slack.Attachment{
 			slack.Attachment{
 				Title:      fmt.Sprintf("<@%s> joined!", s.UserID),
@@ -93,8 +95,8 @@ func slashCommandHandler(w http.ResponseWriter, r *http.Request) {
 				},
 			},
 		}
-		message := slack.MsgOptionAttachments(attachments...)
-		b, err := json.Marshal(message)
+		params.Attachments = attachments
+		b, err := json.Marshal(params)
 		if err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
 			return
@@ -109,6 +111,7 @@ func slashCommandHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func actionHandler(w http.ResponseWriter, r *http.Request) {
+
 	if r.Method != http.MethodPost {
 		log.Printf("[ERROR] Invalid method: %s", r.Method)
 		w.WriteHeader(http.StatusMethodNotAllowed)
@@ -136,6 +139,10 @@ func actionHandler(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
+
+	log.Printf("Received a slash command: %v", message)
+
+	log.Printf("Received a slash command: %v", message.ActionCallback.AttachmentActions)
 
 	originalMessage := message.OriginalMessage
 

@@ -174,6 +174,7 @@ func actionHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	actionCallback.OriginalMessage.Attachments[index] = modifiedAttachment
+	actionCallback.OriginalMessage.ResponseType = "in_channel"
 
 	w.Header().Add("Content-type", "application/json")
 	w.WriteHeader(http.StatusOK)

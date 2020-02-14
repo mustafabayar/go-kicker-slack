@@ -30,6 +30,17 @@ func slashCommandHandler(w http.ResponseWriter, r *http.Request) {
 
 	switch s.Command {
 	case "/kicker":
+		if !strings.Contains(s.ChannelName, "kicker") {
+			warnUser := &slack.Msg{}
+			warnUser.Text = "This request is only available on #kicker channel."
+			warnUser.ReplaceOriginal = false
+			warnUser.DeleteOriginal = false
+			warnUser.ResponseType = slack.ResponseTypeEphemeral
+			w.Header().Add("Content-type", "application/json")
+			w.WriteHeader(http.StatusOK)
+			json.NewEncoder(w).Encode(&warnUser)
+			return
+		}
 		params := &slack.Msg{}
 		attachments := []slack.Attachment{
 			slack.Attachment{

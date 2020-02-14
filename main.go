@@ -189,27 +189,7 @@ func actionHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if strings.Contains(action.Name, "leave") {
-		samePerson := false
-		for i, p := range playerIds {
-			if p == actionCallback.User.ID {
-				selectedAttachment.Color = "#DCDCDC" // Gray
-				selectedAttachment.Actions = nil
-				joinAction := slack.AttachmentAction{
-					Name:  fmt.Sprintf("button-join-%v", index),
-					Text:  "Join",
-					Type:  "button",
-					Style: "primary",
-					Value: "",
-				}
-				selectedAttachment.Actions = []slack.AttachmentAction{joinAction}
-				selectedAttachment.Title = fmt.Sprintf("<@%s> left!", actionCallback.User.ID)
-				playerIds[i] = playerIds[len(playerIds)-1]
-				playerIds = playerIds[:len(playerIds)-1]
-				samePerson = true
-			}
-		}
-
-		if !samePerson {
+		if selectedAttachment.Actions[0].Value != actionCallback.User.ID {
 			warnUser := &slack.Msg{}
 			warnUser.Text = "You can not leave a spot that belongs to someone else!"
 			warnUser.ReplaceOriginal = false
@@ -220,6 +200,19 @@ func actionHandler(w http.ResponseWriter, r *http.Request) {
 			json.NewEncoder(w).Encode(&warnUser)
 			return
 		}
+
+		selectedAttachment.Color = "#DCDCDC" // Gray
+		selectedAttachment.Actions = nil
+		joinAction := slack.AttachmentAction{
+			Name:  fmt.Sprintf("button-join-%v", index),
+			Text:  "Join",
+			Type:  "button",
+			Style: "primary",
+			Value: "",
+		}
+		selectedAttachment.Actions = []slack.AttachmentAction{joinAction}
+		selectedAttachment.Title = fmt.Sprintf("<@%s> left!", actionCallback.User.ID)
+		playerIds = playerIds[:len(playerIds)-1]
 	}
 
 	originalMessage.Attachments[index] = selectedAttachment

@@ -1,13 +1,13 @@
 # go-kicker-slack
 Creates a game for 4 person to join, and then sends notification to all of them when the game is set.
-I have specifically amde this game for our kicker table, but you can change the concept to fit whatever you want.
+I have specifically created this game for our kicker table in the office, but you can change the concept to fit whatever you want by adjusting participant count.
 
 The person who creates the game is automatically joined:
 
 ![Imgur](https://i.imgur.com/KS9vRLD.png)
 
 
-When everyone leaves / there is no one in the game, the game gets cancelled. (To prevent pollution on the channel):
+When everyone leaves / there is no one in the game, the game gets cancelled. (To prevent pollution in the channel):
 
 ![Imgur](https://imgur.com/zCbQP7q.png)
 
